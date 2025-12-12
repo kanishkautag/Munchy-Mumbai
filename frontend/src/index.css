@@ -1,0 +1,275 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Mumbai Midnight Design System - Dark Mode Only */
+
+@layer base {
+  :root {
+    /* Mumbai Midnight - Deep Dark Theme */
+    --background: 222 47% 7%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 258 89% 66%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 222 47% 15%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 222 47% 18%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 48 96% 53%;
+    --accent-foreground: 222 47% 7%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 222 47% 20%;
+    --input: 222 47% 20%;
+    --ring: 258 89% 66%;
+
+    --radius: 0.75rem;
+
+    /* Mumbai Midnight Custom Colors */
+    --midnight: 222 47% 7%;
+    --midnight-light: 222 47% 11%;
+    --midnight-lighter: 222 47% 15%;
+    
+    --neon-purple: 258 89% 66%;
+    --neon-purple-glow: 258 89% 66%;
+    
+    --taxi-yellow: 48 96% 53%;
+    --taxi-yellow-glow: 48 96% 53%;
+    
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 199 89% 48%;
+
+    /* Glass Effects */
+    --glass-bg: 222 47% 11% / 0.6;
+    --glass-border: 222 47% 30% / 0.3;
+    --glass-blur: 12px;
+
+    /* Shadows */
+    --shadow-glow-purple: 0 0 20px hsl(258 89% 66% / 0.3);
+    --shadow-glow-yellow: 0 0 20px hsl(48 96% 53% / 0.3);
+    --shadow-elevated: 0 10px 40px -10px hsl(222 47% 0% / 0.5);
+
+    /* Sidebar */
+    --sidebar-background: 222 47% 9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 258 89% 66%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 47% 15%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 47% 20%;
+    --sidebar-ring: 258 89% 66%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(222 47% 11%);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(215 20% 65% / 0.3);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(215 20% 65% / 0.5);
+  }
+}
+
+@layer components {
+  /* Glass Card */
+  .glass-card {
+    @apply bg-card/60 backdrop-blur-xl border border-border/30 rounded-xl;
+    box-shadow: var(--shadow-elevated);
+  }
+
+  /* Neon Glow Effects */
+  .glow-purple {
+    box-shadow: var(--shadow-glow-purple);
+  }
+
+  .glow-yellow {
+    box-shadow: var(--shadow-glow-yellow);
+  }
+
+  .text-glow-purple {
+    text-shadow: 0 0 20px hsl(var(--neon-purple) / 0.5);
+  }
+
+  .text-glow-yellow {
+    text-shadow: 0 0 20px hsl(var(--taxi-yellow) / 0.5);
+  }
+
+  /* Gradient Backgrounds */
+  .bg-gradient-purple {
+    background: linear-gradient(135deg, hsl(258 89% 66%), hsl(280 89% 50%));
+  }
+
+  .bg-gradient-yellow {
+    background: linear-gradient(135deg, hsl(48 96% 53%), hsl(38 96% 60%));
+  }
+
+  /* Pulsing Animation */
+  .pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% {
+      opacity: 1;
+      box-shadow: 0 0 8px hsl(var(--success) / 0.6);
+    }
+    50% {
+      opacity: 0.7;
+      box-shadow: 0 0 20px hsl(var(--success) / 0.8);
+    }
+  }
+
+  /* Blinking Animation for Pipeline Steps */
+  .blink {
+    animation: blink 1s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.3;
+    }
+  }
+
+  /* Input Glow */
+  .input-glow {
+    @apply transition-all duration-300;
+  }
+
+  .input-glow:focus-within {
+    box-shadow: 0 0 0 2px hsl(var(--neon-purple) / 0.3), var(--shadow-glow-purple);
+  }
+
+  /* Status Badge */
+  .status-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-medium;
+  }
+
+  .status-healthy {
+    @apply bg-emerald-500/20 text-emerald-400 border border-emerald-500/30;
+  }
+
+  .status-warning {
+    @apply bg-amber-500/20 text-amber-400 border border-amber-500/30;
+  }
+
+  .status-error {
+    @apply bg-red-500/20 text-red-400 border border-red-500/30;
+  }
+
+  /* Chat Bubble */
+  .chat-bubble-user {
+    @apply bg-gradient-purple text-white rounded-2xl rounded-br-md px-4 py-3;
+  }
+
+  .chat-bubble-ai {
+    @apply glass-card px-4 py-3 rounded-2xl rounded-bl-md;
+  }
+
+  /* Pipeline Step */
+  .pipeline-step {
+    @apply flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono text-sm;
+  }
+
+  .pipeline-step-active {
+    @apply bg-primary/20 text-primary border border-primary/30 blink;
+  }
+
+  .pipeline-step-complete {
+    @apply bg-emerald-500/20 text-emerald-400 border border-emerald-500/30;
+  }
+
+  .pipeline-step-pending {
+    @apply bg-muted text-muted-foreground border border-border;
+  }
+
+  /* Media Chip */
+  .media-chip {
+    @apply inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border;
+  }
+
+  /* Map Container */
+  .map-container {
+    @apply rounded-xl overflow-hidden border border-border/30;
+  }
+
+  /* Leaflet Dark Mode Overrides */
+  .leaflet-container {
+    background: hsl(222 47% 7%) !important;
+  }
+
+  .leaflet-control-zoom a {
+    background: hsl(222 47% 11%) !important;
+    border-color: hsl(222 47% 20%) !important;
+    color: hsl(210 40% 98%) !important;
+  }
+
+  .leaflet-control-zoom a:hover {
+    background: hsl(222 47% 18%) !important;
+  }
+
+  .leaflet-control-attribution {
+    background: hsl(222 47% 11% / 0.8) !important;
+    color: hsl(215 20% 65%) !important;
+    font-size: 10px !important;
+  }
+}
+
+@layer utilities {
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .font-sans {
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Custom scrollbar hide */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

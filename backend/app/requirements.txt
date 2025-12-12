@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+chromadb
+langchain-groq
+langchain-community
+tavily-python
+pandas
+python-dotenv
+sqlalchemy
+trafilatura          
+google-api-python-client 

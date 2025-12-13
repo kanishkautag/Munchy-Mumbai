@@ -23,10 +23,9 @@ services:
         sync: false
 
   # 2. THE FRONTEND (React Static Site)
-  # FIX: Change 'static' to 'pstatic'
-  - type: pstatic
+  - type: web               # <--- CHANGED: Must be 'web'
     name: munchy-frontend
-    env: static
+    env: static             # <--- This makes it a Static Site
     buildCommand: |
       cd frontend
       npm install

@@ -1,69 +1,41 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles } from 'lucide-react';
+import { Send, Sparkles, Bot, User, Activity } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { PipelineVisualization } from './PipelineVisualization';
 
-// --- ROBUST DATA PARSING HELPER ---
+// --- UTILS ---
 const extractYoutubeIds = (ytData: any): string[] => {
   if (!ytData) return [];
+  const textToCheck = typeof ytData === 'string' ? ytData : JSON.stringify(ytData);
   
-  const ids: string[] = [];
+  // Regex to catch standard IDs (11 chars)
   const patterns = [
-    /v=([a-zA-Z0-9_-]{11})/,       // standard v=ID
-    /youtu\.be\/([a-zA-Z0-9_-]{11})/, // short link
-    /embed\/([a-zA-Z0-9_-]{11})/   // embed link
+    /v=([a-zA-Z0-9_-]{11})/,
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+    /embed\/([a-zA-Z0-9_-]{11})/
   ];
 
-  const parseString = (str: string) => {
-    for (const pattern of patterns) {
-      const match = str.match(pattern);
-      if (match) return match[1];
-    }
-    return null;
-  };
-
-  // Case A: It's a single string (dump from LLM)
-  if (typeof ytData === 'string') {
-    // Run regex globally to find all matches in the text block
-    const globalV = Array.from(ytData.matchAll(/v=([a-zA-Z0-9_-]{11})/g)).map(m => m[1]);
-    const globalShort = Array.from(ytData.matchAll(/youtu\.be\/([a-zA-Z0-9_-]{11})/g)).map(m => m[1]);
-    return [...new Set([...globalV, ...globalShort])]; // Unique IDs only
+  const ids = new Set<string>();
+  
+  // 1. Try to parse from string text (LLM response)
+  const allMatches = textToCheck.matchAll(/([a-zA-Z0-9_-]{11})/g);
+  for (const match of allMatches) {
+     // Basic heuristic: valid IDs are usually 11 chars. 
+     // We rely on the context of the input being "youtube related"
+     if (match[0].length === 11) ids.add(match[0]);
   }
 
-  // Case B: It's a List (API structure)
-  if (Array.isArray(ytData)) {
-    ytData.forEach(item => {
-      let id = null;
-      // Item is string URL
-      if (typeof item === 'string') {
-        id = parseString(item);
-      } 
-      // Item is Object (e.g. { url: "...", title: "..." })
-      else if (typeof item === 'object' && item !== null) {
-        const url = item.url || item.link || item.href || '';
-        if (url) id = parseString(url);
-      }
-      
-      if (id) ids.push(id);
-    });
-  }
+  // 2. Specific URL pattern matching for higher accuracy
+  patterns.forEach(pattern => {
+    const match = textToCheck.match(pattern);
+    if (match && match[1]) ids.add(match[1]);
+  });
 
-  return [...new Set(ids)];
+  return Array.from(ids);
 };
 
-const determineSources = (data: any) => {
-  const sources: string[] = [];
-  if (data?.sql) sources.push('Local DB');
-  if (data?.web) sources.push('Reddit'); // Assuming web often hits Reddit
-  if (data?.rag || data?.discovery) sources.push('Vector Search');
-  if (data?.youtube) sources.push('YouTube');
-  return sources;
-};
-
-// --- COMPONENT ---
-
-interface Message {
+// --- TYPES ---
+export interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
@@ -78,6 +50,22 @@ interface ChatInterfaceProps {
   onNewMessage?: (message: Message) => void;
 }
 
+// --- SUB-COMPONENT: PIPELINE VISUALIZATION ---
+const PipelineVisualization = ({ step }: { step: number }) => {
+  const steps = ['Thinking', 'Searching DB', 'Analyzing Vibes', 'Synthesizing'];
+  return (
+    <div className="flex items-center gap-2 p-3 bg-slate-900/50 rounded-lg border border-white/10 text-xs font-mono text-cyan-400 my-2">
+      <Activity className="w-4 h-4 animate-pulse" />
+      <span>{steps[step] || 'Processing...'}</span>
+      <div className="flex gap-1 ml-2">
+        {[0, 1, 2, 3].map(i => (
+          <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === step ? 'bg-cyan-400' : 'bg-slate-700'}`} />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export function ChatInterface({ onNewMessage }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -87,23 +75,9 @@ export function ChatInterface({ onNewMessage }: ChatInterfaceProps) {
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isThinking]);
-
-  const simulatePipeline = async () => {
-    setPipelineStep(1);
-    await new Promise((r) => setTimeout(r, 800));
-    setPipelineStep(2);
-    await new Promise((r) => setTimeout(r, 1200));
-    setPipelineStep(3);
-    await new Promise((r) => setTimeout(r, 800));
-    setPipelineStep(0);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,11 +90,14 @@ export function ChatInterface({ onNewMessage }: ChatInterfaceProps) {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsThinking(true);
 
-    const pipelinePromise = simulatePipeline();
+    // Simulate pipeline visuals
+    const pipelineInterval = setInterval(() => {
+      setPipelineStep(prev => (prev + 1) % 4);
+    }, 800);
 
     try {
       const response = await fetch(`${API_BASE}/chat`, {
@@ -128,129 +105,121 @@ export function ChatInterface({ onNewMessage }: ChatInterfaceProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           query: userMessage.content, 
-          session_id: 'user-session-1' 
+          session_id: 'user-session-v1',
+          chat_history: messages.slice(-5).map(m => ({ role: m.role, content: m.content })) // Send History!
         }),
       });
 
-      if (!response.ok) throw new Error(`Backend failed: ${response.status}`);
+      if (!response.ok) throw new Error('API Error');
       const data = await response.json();
       
-      // LOG DATA TO CONSOLE FOR DEBUGGING
-      console.log("🔥 RAW BACKEND DATA:", data);
-      
-      await pipelinePromise;
+      clearInterval(pipelineInterval);
 
+      // Extract Context Data
       const ytIds = extractYoutubeIds(data.youtube);
-      console.log("🎥 EXTRACTED YOUTUBE IDS:", ytIds);
+      const sources = [];
+      if (data.sql && data.sql.length > 5) sources.push('SQL DB');
+      if (data.rag || data.discovery) sources.push('Vector RAG');
+      if (data.web) sources.push('Live Web');
+      if (data.youtube) sources.push('YouTube');
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.response || 'No response from server.',
+        content: data.response || 'System returned empty response.',
         timestamp: new Date(),
-        coordinates: data.coordinates || undefined, 
+        coordinates: data.coordinates,
         youtube: ytIds,
-        sources: determineSources(data),
+        sources: sources,
         metrics: { latency: data.metrics?.latency },
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
-      
-      // CRITICAL: Notify Parent to update Dashboard
-      if (onNewMessage) {
-        onNewMessage(assistantMessage);
-      }
+      setMessages(prev => [...prev, assistantMessage]);
+      if (onNewMessage) onNewMessage(assistantMessage);
 
     } catch (error) {
-      console.error('API Error:', error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: "⚠️ **System Offline:** Is the backend running?",
-          timestamp: new Date(),
-        },
-      ]);
+      clearInterval(pipelineInterval);
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: "⚠️ **Connection Failed**: Is the backend running at " + API_BASE + "?",
+        timestamp: new Date()
+      }]);
     } finally {
       setIsThinking(false);
+      setPipelineStep(0);
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full">
+    <div className="flex flex-col h-full bg-slate-950/50">
       {/* Header */}
-      <div className="p-4 border-b border-border/50 bg-card/30 backdrop-blur-sm">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">AI Assistant</h2>
+      <div className="p-4 border-b border-white/10 bg-slate-900/50 backdrop-blur">
+        <div className="flex items-center gap-2 text-cyan-400">
+          <Sparkles className="w-5 h-5" />
+          <h2 className="font-semibold text-slate-100">Mumbai Munch AI</h2>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <AnimatePresence mode="popLayout">
-          {messages.map((message) => (
-            <motion.div
-              key={message.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[85%] p-3 rounded-2xl ${
-                  message.role === 'user' 
-                    ? 'chat-bubble-user' 
-                    : 'chat-bubble-ai'
-                }`}
-              >
-                {message.role === 'assistant' ? (
-                  <div className="prose prose-invert prose-sm max-w-none">
-                    <ReactMarkdown>{message.content}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <p>{message.content}</p>
-                )}
-              </div>
-            </motion.div>
-          ))}
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {messages.map((m) => (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }} 
+            animate={{ opacity: 1, y: 0 }}
+            key={m.id} 
+            className={`flex gap-3 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+              m.role === 'user' ? 'bg-purple-600' : 'bg-cyan-600'
+            }`}>
+              {m.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+            </div>
+            
+            <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed ${
+              m.role === 'user' 
+                ? 'bg-purple-600/20 text-purple-100 rounded-tr-sm border border-purple-500/20' 
+                : 'bg-slate-800 text-slate-200 rounded-tl-sm border border-slate-700'
+            }`}>
+              <ReactMarkdown>{m.content}</ReactMarkdown>
+              
+              {/* Metrics Footer */}
+              {m.role === 'assistant' && m.metrics && (
+                <div className="mt-3 pt-3 border-t border-white/10 flex gap-3 text-[10px] font-mono text-slate-400 uppercase tracking-wider">
+                  <span>⏱ {(m.metrics.latency || 0).toFixed(2)}s</span>
+                  {m.sources?.map(s => <span key={s} className="text-cyan-400">{s}</span>)}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        ))}
 
-          {isThinking && (
-             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start w-full">
-                <PipelineVisualization currentStep={pipelineStep} />
-             </motion.div>
-          )}
-        </AnimatePresence>
+        {isThinking && (
+           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+             <PipelineVisualization step={pipelineStep} />
+           </motion.div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
-      <div className="p-4 bg-card/30 backdrop-blur-sm">
-        <motion.form
-          onSubmit={handleSubmit}
-          className="glass-card p-2 input-glow"
-          whileFocus={{ scale: 1.01 }}
-        >
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about Mumbai..."
-              className="flex-1 bg-transparent px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none"
-              disabled={isThinking}
-            />
-            <motion.button
-              type="submit"
-              disabled={!input.trim() || isThinking}
-              className="p-2 rounded-lg bg-primary text-primary-foreground disabled:opacity-50"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Send className="w-5 h-5" />
-            </motion.button>
-          </div>
-        </motion.form>
+      <div className="p-4 border-t border-white/10 bg-slate-900/80">
+        <form onSubmit={handleSubmit} className="relative">
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Ask about food in Mumbai..."
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 pr-12 text-sm text-white focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all placeholder:text-slate-600"
+            disabled={isThinking}
+          />
+          <button 
+            type="submit"
+            disabled={!input.trim() || isThinking}
+            className="absolute right-2 top-2 p-1.5 bg-cyan-600 text-white rounded-lg hover:bg-cyan-500 disabled:opacity-50 disabled:hover:bg-cyan-600 transition-colors"
+          >
+            <Send size={16} />
+          </button>
+        </form>
       </div>
     </div>
   );

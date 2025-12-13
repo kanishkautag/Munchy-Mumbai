@@ -23,17 +23,16 @@ services:
         sync: false
 
   # 2. THE FRONTEND (React Static Site)
-  - type: web               # <--- CHANGED: Must be 'web'
+  - type: web
     name: munchy-frontend
-    env: static             # <--- This makes it a Static Site
+    env: static
     buildCommand: |
       cd frontend
       npm install
       npm run build
     staticPublishPath: frontend/dist
     envVars:
+      # FIX: We set this to false so you enter it manually in the dashboard.
+      # This prevents the "invalid property: url" error.
       - key: VITE_API_BASE_URL
-        fromService:
-          type: web
-          name: munchy-backend
-          property: url
+        sync: false

@@ -3,12 +3,10 @@ services:
   - type: web
     name: munchy-backend
     env: python
-    # Clean build command
     buildCommand: |
       cd backend
       pip install --upgrade pip
       pip install -r requirements.txt
-    # Start command pointing to your app
     startCommand: |
       cd backend
       uvicorn app.main:app --host 0.0.0.0 --port $PORT
@@ -16,17 +14,17 @@ services:
       - key: PYTHON_VERSION
         value: 3.10.0
       - key: SUPABASE_URL
-        sync: false   # Enter in Dashboard
+        sync: false
       - key: GROQ_API_KEY
-        sync: false   # Enter in Dashboard
+        sync: false
       - key: GOOGLE_API_KEY
-        sync: false   # Enter in Dashboard
+        sync: false
       - key: TAVILY_API_KEY
-        sync: false   # Enter in Dashboard
-    # NO DISK NEEDED -> Much Cheaper!
+        sync: false
 
   # 2. THE FRONTEND (React Static Site)
-  - type: static
+  # FIX: Change 'static' to 'pstatic'
+  - type: pstatic
     name: munchy-frontend
     env: static
     buildCommand: |
@@ -35,7 +33,6 @@ services:
       npm run build
     staticPublishPath: frontend/dist
     envVars:
-      # This magically pulls the URL from the backend service above
       - key: VITE_API_BASE_URL
         fromService:
           type: web

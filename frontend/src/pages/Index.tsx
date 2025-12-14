@@ -1,10 +1,8 @@
 import { useState } from 'react';
-// FIX: Use relative paths to jump out of 'pages' and into 'components'
 import { ChatInterface, Message } from '../components/ChatInterface';
 import { ContextDashboard } from '../components/ContextDashboard';
 
 export default function MumbaiMunchPage() {
-  // State to hold the latest context from the chat
   const [currentContext, setCurrentContext] = useState<{
     coordinates: { lat: number; lng: number } | null;
     youtube: string[];
@@ -15,16 +13,14 @@ export default function MumbaiMunchPage() {
     sources: []
   });
 
-  // Handler: When ChatInterface gets a response, update the Dashboard
   const handleNewMessage = (msg: Message) => {
     if (msg.role === 'assistant') {
-      // Only update if the message has relevant data
       const hasNewLocation = !!msg.coordinates;
       const hasNewMedia = msg.youtube && msg.youtube.length > 0;
       
       if (hasNewLocation || hasNewMedia) {
         setCurrentContext({
-          coordinates: msg.coordinates || currentContext.coordinates, // Keep old coords if new msg has none
+          coordinates: msg.coordinates || currentContext.coordinates,
           youtube: msg.youtube || [],
           sources: msg.sources || []
         });
@@ -33,14 +29,15 @@ export default function MumbaiMunchPage() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-[#050505] text-slate-200 overflow-hidden font-sans">
+    // FIX: Using md:flex-row allows stacking on mobile, side-by-side on desktop
+    <div className="flex flex-col md:flex-row h-screen w-full bg-[#050505] text-slate-200 overflow-hidden font-sans relative">
       
-      {/* LEFT: Chat Area (Flexible Width) */}
-      <div className="flex-1 min-w-0 h-full relative z-10">
+      {/* LEFT: Chat Area */}
+      <div className="flex-1 h-full relative z-10 min-w-0">
         <ChatInterface onNewMessage={handleNewMessage} />
       </div>
 
-      {/* RIGHT: Dashboard (Fixed Width) */}
+      {/* RIGHT: Dashboard (Responsive handled inside component) */}
       <ContextDashboard 
         coordinates={currentContext.coordinates}
         youtube={currentContext.youtube}

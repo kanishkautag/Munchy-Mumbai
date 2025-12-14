@@ -3,8 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// --- FIX FOR BROKEN LEAFLET ICONS IN REACT ---
-// React-Leaflet sometimes fails to load default icons. This fixes it.
+// --- STANDARD LEAFLET ICON FIX ---
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
@@ -12,59 +11,76 @@ const DefaultIcon = L.icon({
     iconUrl: icon,
     shadowUrl: iconShadow,
     iconSize: [25, 41],
-    iconAnchor: [12, 41]
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
 });
-
 L.Marker.prototype.options.icon = DefaultIcon;
 
 // --- TYPES ---
 interface ContextMapProps {
-    coordinates?: { lat: number; lng: number } | null;
+    coordinates: { lat: number; lng: number } | null;
     onSelect?: (coords: { lat: number; lng: number }) => void;
 }
 
-// --- HELPER: ANIMATE MAP MOVEMENT ---
-// This component listens for coordinate changes and "flies" the map to the new location.
-function MapUpdater({ center }: { center: { lat: number; lng: number } }) {
+// --- CONTROLLER (THE FIX) ---
+// This component handles the "Flying" animation and fixing the "Grey Map" glitch
+function MapController({ coords }: { coords: { lat: number; lng: number } | null }) {
     const map = useMap();
+
     useEffect(() => {
-        if (center) {
-            map.flyTo(center, 15, { duration: 2.5, easeLinearity: 0.25 });
+        if (coords) {
+            // 1. Fly to new location
+            map.flyTo([coords.lat, coords.lng], 16, {
+                animate: true,
+                duration: 2
+            });
+
+            // 2. CRITICAL FIX: Force the map to resize correctly
+            // This prevents the "Grey Box" issue when the sidebar opens
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 200);
         }
-    }, [center, map]);
+    }, [coords, map]);
+
     return null;
 }
 
-// --- MAIN COMPONENT ---
 export function ContextMap({ coordinates }: ContextMapProps) {
-    // Default Center: Dadar, Mumbai (Center of the city)
-    const defaultCenter = { lat: 19.0178, lng: 72.8478 };
+    // Default Center: Mumbai
+    const defaultCenter = { lat: 19.0760, lng: 72.8777 };
     const activeCenter = coordinates || defaultCenter;
 
+    // We create a unique key. Changing this forces React to completely destroy 
+    // and rebuild the map, which ensures it always renders fresh.
+    const mapKey = coordinates ? `map-${coordinates.lat}-${coordinates.lng}` : 'map-default';
+
     return (
-        <MapContainer 
-            center={activeCenter} 
-            zoom={12} 
-            style={{ height: '100%', width: '100%', background: '#0f172a' }} // Matches slate-900
-            zoomControl={false} // Cleaner look
-        >
-            {/* Dark Theme Tiles matching your "Mumbai Midnight" CSS */}
-            <TileLayer
-                attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-            />
-            
-            {/* Render Marker if we have coordinates */}
-            {coordinates && (
-                <>
-                    <Marker position={coordinates}>
-                        <Popup className="font-sans text-xs">
-                            📍 <b>Selected Restaurant</b>
+        <div className="h-full w-full bg-slate-100 rounded-xl overflow-hidden border border-white/10 relative z-0">
+            <MapContainer
+                key={mapKey} // <--- Forces re-render to fix glitches
+                center={[activeCenter.lat, activeCenter.lng]}
+                zoom={coordinates ? 16 : 11}
+                scrollWheelZoom={true}
+                className="h-full w-full"
+                zoomControl={false} // Cleaner look
+            >
+                {/* STANDARD OPENSTREETMAP TILES */}
+                <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+
+                <MapController coords={coordinates} />
+
+                {coordinates && (
+                    <Marker position={[coordinates.lat, coordinates.lng]}>
+                        <Popup className="font-sans text-sm">
+                            📍 <b>Selected Location</b>
                         </Popup>
                     </Marker>
-                    <MapUpdater center={coordinates} />
-                </>
-            )}
-        </MapContainer>
+                )}
+            </MapContainer>
+        </div>
     );
 }

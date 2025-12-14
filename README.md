@@ -31,6 +31,12 @@ High level flow
 4. Verifier Node validates all facts against the database  
 5. Synthesizer model generates the final response  
 
+## 🏗️ Architecture
+
+<img src="architecture.png" alt="Munchy Mumbai AI Architecture" width="100%" />
+
+This architecture uses a LangGraph based multi agent routing system with a deterministic verifier layer to guarantee fully grounded responses and prevent location or branch hallucinations.
+
 ### Agent Types
 
 Specific Agent  

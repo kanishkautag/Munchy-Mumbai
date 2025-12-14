@@ -8,10 +8,6 @@ The system focuses on correctness first, using structured databases, live web si
 
 Frontend  
 https://munchy-mumbai.vercel.app/
-
-Backend  
-Hugging Face Space
-
 ## 📸 Interface
 
 ### 1. Interactive Dashboard

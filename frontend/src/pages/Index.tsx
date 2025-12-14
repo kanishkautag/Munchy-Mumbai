@@ -29,15 +29,16 @@ export default function MumbaiMunchPage() {
   };
 
   return (
-    // FIX: Using md:flex-row allows stacking on mobile, side-by-side on desktop
+    // md:flex-row stacks items on mobile (col) and puts them side-by-side on desktop
     <div className="flex flex-col md:flex-row h-screen w-full bg-[#050505] text-slate-200 overflow-hidden font-sans relative">
       
       {/* LEFT: Chat Area */}
-      <div className="flex-1 h-full relative z-10 min-w-0">
+      {/* Added 'pb-14' on mobile so input isn't hidden by the collapsed map sheet */}
+      <div className="flex-1 h-full relative z-10 min-w-0 pb-14 md:pb-0">
         <ChatInterface onNewMessage={handleNewMessage} />
       </div>
 
-      {/* RIGHT: Dashboard (Responsive handled inside component) */}
+      {/* RIGHT: Dashboard (Responsive behavior handled internally) */}
       <ContextDashboard 
         coordinates={currentContext.coordinates}
         youtube={currentContext.youtube}
